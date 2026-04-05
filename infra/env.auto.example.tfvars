@@ -1,0 +1,7 @@
+aws_region       = "us-east-1"
+access_key       = "TU_AWS_ACCESS_KEY"
+secret_key       = "TU_AWS_SECRET_KEY"
+instance_name    = "mi-ec2-nginx"
+ami_id           = "ami-xxxxxxxxxxxxxxxxx"
+instance_type    = "t2.micro"
+key_pair_name    = "mi-keypair"

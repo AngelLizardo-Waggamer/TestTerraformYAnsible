@@ -1,0 +1,126 @@
+---
+- name: Instalar Git y Docker en instancia EC2 de AWS
+  hosts: aws_servers
+  become: true
+  gather_facts: true
+
+  vars:
+    github_token: ""   # <-- reemplázalo por un token válido
+    docker_arch: "amd64"                # ajusta a "arm64" si aplica
+    github_repo: "" # <-- reemplazar con usuiario/repositorio de GitHub, e.g., "usuario/repo"
+
+  tasks:
+    - name: Actualizar caché de paquetes (Debian/Ubuntu)
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      when: ansible_facts.os_family == "Debian"
+
+    - name: Instalar Git
+      package:
+        name: git
+        state: present
+
+    - name: Instalar paquetes necesarios para Docker (Debian/Ubuntu)
+      package:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg-agent
+          - software-properties-common
+        state: present
+      when: ansible_facts.os_family == "Debian"
+
+    - name: Agregar la clave GPG oficial de Docker (Debian/Ubuntu)
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+      when: ansible_facts.os_family == "Debian"
+
+    - name: Agregar repositorio de Docker (Debian/Ubuntu)
+      apt_repository:
+        repo: "deb [arch={{ docker_arch }}] https://download.docker.com/linux/ubuntu {{ ansible_facts.distribution_release | lower }} stable"
+        state: present
+      when: ansible_facts.os_family == "Debian"
+
+    - name: Actualizar caché tras agregar repo Docker (Debian/Ubuntu)
+      apt:
+        update_cache: yes
+      when: ansible_facts.os_family == "Debian"
+
+    - name: Instalar Docker
+      package:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+        state: present
+
+    - name: Agregar usuario actual al grupo docker
+      user:
+        name: "{{ ansible_ssh_user }}"
+        groups: docker
+        append: yes
+
+    - name: Iniciar y habilitar el servicio Docker
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Corregir permisos del socket de Docker
+      file:
+        path: /var/run/docker.sock
+        owner: root
+        group: docker
+        mode: '0660'
+
+    - name: Eliminar directorio /root si existe (NO recomendado)
+      file:
+        path: /root
+        state: absent
+      ignore_errors: yes
+
+    - name: Clonar repositorio Git privado
+      git:
+        repo: "https://{{ github_token }}@github.com/{{ github_repo }}.git"
+        dest: "/root/EncriptadorWeb"
+        version: HEAD
+
+    - name: Construir imagen del contenedor Docker
+      command:
+        argv:
+          - /usr/bin/docker
+          - build
+          - -t
+          - encriptadorweb
+          - /root/EncriptadorWeb
+
+    - name: Detener contenedor Docker si está en ejecución
+      command:
+        argv:
+          - /usr/bin/docker
+          - stop
+          - encriptadorweb
+      ignore_errors: yes
+
+    - name: Eliminar contenedor Docker si existe
+      command:
+        argv:
+          - /usr/bin/docker
+          - rm
+          - encriptadorweb
+      ignore_errors: yes
+
+    - name: Ejecutar contenedor Docker
+      command:
+        argv:
+          - /usr/bin/docker
+          - run
+          - -d
+          - --name
+          - encriptadorweb
+          - -p
+          - "80:80"
+          - encriptadorweb

@@ -1,0 +1,8 @@
+# playbook local con valores sensibles en sus variables. Se dejó un .example.yml para referencia de cómo es el formato.
+install_git_docker.yml
+
+# Archivo con variables sensibles de terraform. Se dejó un .example.tfvars para referencia de cuáles son las variables que se deben definir.
+infra/env.auto.tfvars
+
+# Llave SSH privada para acceso a los servidores
+infra/key/*
