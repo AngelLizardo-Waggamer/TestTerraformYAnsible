@@ -6,3 +6,11 @@ infra/env.auto.tfvars
 
 # Llave SSH privada para acceso a los servidores
 infra/key/*
+
+# Terraform
+infra/.terraform/*
+*.lock.hcl
+*.tfstate*
+
+# Hosts de ansible
+hosts
